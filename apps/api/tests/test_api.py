@@ -118,6 +118,24 @@ def test_lan_origin_cors_preflight():
     assert get_response.headers["access-control-expose-headers"] == "X-Total-Count"
 
 
+def test_vercel_origin_cors_preflight():
+    origin = "https://resume-analysis-platform-web-unra.vercel.app"
+    response = client.options(
+        "/api/candidates?sort=created_desc&page=1&page_size=10",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+
+    get_response = client.get("/api/candidates", headers={"Origin": origin})
+    assert get_response.status_code == 200
+    assert get_response.headers["access-control-allow-origin"] == origin
+
+
 def test_missing_resume_preview_returns_404():
     init_db()
     with Session(engine) as session:
