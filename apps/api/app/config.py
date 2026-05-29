@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,17 @@ def normalize_sqlite_url(database_url: str) -> str:
     absolute_path = (ROOT_DIR / raw_path).resolve()
     absolute_path.parent.mkdir(parents=True, exist_ok=True)
     return f"{prefix}{absolute_path}"
+
+
+def normalize_database_url(database_url: str) -> str:
+    database_url = normalize_sqlite_url(database_url)
+    if not database_url.startswith(("postgresql://", "postgresql+")):
+        return database_url
+
+    parsed = urlsplit(database_url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query.setdefault("connect_timeout", "10")
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
 
 
 class Settings(BaseSettings):
@@ -43,7 +55,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def normalize_local_paths(self) -> "Settings":
-        self.database_url = normalize_sqlite_url(self.database_url)
+        self.database_url = normalize_database_url(self.database_url)
         if self.supabase_url:
             self.supabase_url = self.supabase_url.rstrip("/")
         if self.storage_backend == "supabase":

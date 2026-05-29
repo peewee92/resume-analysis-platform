@@ -1,6 +1,6 @@
 import pytest
 
-from app.config import ROOT_DIR, Settings, normalize_sqlite_url
+from app.config import ROOT_DIR, Settings, normalize_database_url, normalize_sqlite_url
 
 
 def test_normalize_relative_sqlite_url_from_env():
@@ -10,6 +10,18 @@ def test_normalize_relative_sqlite_url_from_env():
 
 def test_preserves_absolute_sqlite_url():
     assert normalize_sqlite_url("sqlite:////tmp/resume.db") == "sqlite:////tmp/resume.db"
+
+
+def test_postgres_url_gets_connect_timeout():
+    url = normalize_database_url("postgresql+psycopg://user:pass@host:5432/postgres?sslmode=require")
+
+    assert url == "postgresql+psycopg://user:pass@host:5432/postgres?sslmode=require&connect_timeout=10"
+
+
+def test_postgres_url_preserves_existing_connect_timeout():
+    url = normalize_database_url("postgresql+psycopg://user:pass@host:5432/postgres?connect_timeout=3")
+
+    assert url == "postgresql+psycopg://user:pass@host:5432/postgres?connect_timeout=3"
 
 
 def test_allowed_origins_deduplicates_web_origin():
