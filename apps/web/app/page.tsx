@@ -33,7 +33,6 @@ import {
   Select,
   Skeleton,
   Space,
-  Spin,
   Statistic,
   Table,
   Tabs,
@@ -181,6 +180,7 @@ function ResumeWorkbench({ onThemeChange, themeMode }: { onThemeChange: (value: 
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("profile");
+  const [detailLoading, setDetailLoading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareLoading, setCompareLoading] = useState(false);
@@ -273,13 +273,18 @@ function ResumeWorkbench({ onThemeChange, themeMode }: { onThemeChange: (value: 
   async function openCandidate(id: number, tab: DrawerTab = "profile") {
     setDrawerOpen(true);
     setDrawerTab(tab);
+    setDetailLoading(true);
+    setSelected(null);
+    setScores([]);
+    setJobResults([]);
     try {
-      const candidate = await getCandidate(id);
+      const [candidate, nextScores] = await Promise.all([getCandidate(id), getScores(id)]);
       setSelected(candidate);
-      setScores(await getScores(id));
-      setJobResults([]);
+      setScores(nextScores);
     } catch (error) {
       message.error(error instanceof Error ? error.message : "加载候选人详情失败");
+    } finally {
+      setDetailLoading(false);
     }
   }
 
@@ -603,7 +608,7 @@ function ResumeWorkbench({ onThemeChange, themeMode }: { onThemeChange: (value: 
           locale={{ emptyText: <Empty description="暂无候选人，请先上传 PDF 简历" /> }}
         />
 
-        <Flex align="center" justify="flex-end" gap={10} className="table-footer">
+        <Flex align="center" justify="flex-end" gap={10} style={{ marginTop: 10 }} className="table-footer">
           <Text type="secondary">共 {totalCount} 条</Text>
           <Button disabled={page === 1 || loading} onClick={() => setPage((value) => Math.max(1, value - 1))}>上一页</Button>
           <Text type="secondary">第 {page} 页</Text>
@@ -622,6 +627,7 @@ function ResumeWorkbench({ onThemeChange, themeMode }: { onThemeChange: (value: 
         form={profileForm}
         jobResults={jobResults}
         jobs={jobs}
+        loading={detailLoading}
         onActiveJobChange={setActiveJobId}
         onAddJob={addJob}
         onClose={() => setDrawerOpen(false)}
@@ -687,6 +693,7 @@ function CandidateDrawer({
   form,
   jobResults,
   jobs,
+  loading,
   onActiveJobChange,
   onAddJob,
   onClose,
@@ -708,6 +715,7 @@ function CandidateDrawer({
   form: ReturnType<typeof Form.useForm<ProfileFormValues>>[0];
   jobResults: JobScoreResult[];
   jobs: JobProfile[];
+  loading: boolean;
   onActiveJobChange: (id: string) => void;
   onAddJob: () => void;
   onClose: () => void;
@@ -730,12 +738,12 @@ function CandidateDrawer({
       footer={(
         <Flex justify="flex-end" gap={8}>
           <Button onClick={onClose}>关闭</Button>
-          {drawerTab === "profile" && <Button type="primary" onClick={onSave}>保存修正</Button>}
+          {drawerTab === "profile" && candidate && !loading && <Button type="primary" onClick={onSave}>保存修正</Button>}
         </Flex>
       )}
     >
-      {!candidate ? (
-        <Spin />
+      {loading || !candidate ? (
+        <CandidateDrawerSkeleton />
       ) : (
         <Tabs
           activeKey={drawerTab}
@@ -780,6 +788,22 @@ function CandidateDrawer({
         />
       )}
     </Drawer>
+  );
+}
+
+function CandidateDrawerSkeleton() {
+  return (
+    <Space direction="vertical" size={18} className="drawer-panel drawer-skeleton">
+      <Skeleton active avatar paragraph={{ rows: 2 }} title={{ width: "42%" }} />
+      <div className="drawer-skeleton-grid">
+        <Skeleton.Input active block />
+        <Skeleton.Input active block />
+        <Skeleton.Input active block />
+        <Skeleton.Input active block />
+      </div>
+      <Skeleton active paragraph={{ rows: 6 }} title={{ width: "28%" }} />
+      <Skeleton active paragraph={{ rows: 4 }} title={{ width: "32%" }} />
+    </Space>
   );
 }
 
