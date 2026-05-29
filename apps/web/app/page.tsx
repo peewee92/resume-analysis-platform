@@ -31,6 +31,7 @@ import {
   Progress,
   Segmented,
   Select,
+  Skeleton,
   Space,
   Spin,
   Statistic,
@@ -635,7 +636,7 @@ function ResumeWorkbench({ onThemeChange, themeMode }: { onThemeChange: (value: 
         scoringJobIds={scoringJobIds}
       />
 
-      <CompareModal comparison={comparison} loading={compareLoading} open={compareOpen} onClose={() => setCompareOpen(false)} />
+      <CompareDrawer comparison={comparison} loading={compareLoading} open={compareOpen} selectedCount={compareIds.length} onClose={() => setCompareOpen(false)} />
     </main>
   );
 }
@@ -930,13 +931,56 @@ function ScoreTab({
   );
 }
 
-function CompareModal({ comparison, loading, onClose, open }: { comparison: { candidate: Candidate; score?: Score | null }[]; loading: boolean; onClose: () => void; open: boolean }) {
+function CompareSkeletonCards({ count }: { count: number }) {
   return (
-    <Modal title="候选人对比" open={open} onCancel={onClose} footer={<Button onClick={onClose}>关闭</Button>} width={1080}>
+    <div className="compare-grid compare-grid-stable">
+      {Array.from({ length: Math.max(2, count) }).map((_, index) => (
+        <Card className="compare-skeleton-card" key={index}>
+          <Skeleton active avatar paragraph={{ rows: 1 }} title={{ width: "54%" }} />
+          <Skeleton.Button active block size="large" />
+          <Skeleton active paragraph={{ rows: 5 }} title={false} />
+          <Skeleton active paragraph={{ rows: 2 }} title={false} />
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function CompareDrawer({
+  comparison,
+  loading,
+  onClose,
+  open,
+  selectedCount,
+}: {
+  comparison: { candidate: Candidate; score?: Score | null }[];
+  loading: boolean;
+  onClose: () => void;
+  open: boolean;
+  selectedCount: number;
+}) {
+  return (
+    <Drawer
+      className="compare-drawer"
+      title="候选人对比"
+      open={open}
+      onClose={onClose}
+      width="min(1080px, 100vw)"
+      footer={(
+        <Flex justify="flex-end">
+          <Button onClick={onClose}>关闭</Button>
+        </Flex>
+      )}
+    >
+      <div className="compare-drawer-shell">
+        <Flex align="center" justify="space-between" className="compare-drawer-status">
+          <Text type="secondary">{loading ? "正在生成候选人对比" : `已选择 ${comparison.length || selectedCount} 名候选人`}</Text>
+          {loading && <Tag color="blue">分析中</Tag>}
+        </Flex>
       {loading ? (
-        <Spin />
+        <CompareSkeletonCards count={selectedCount} />
       ) : comparison.length ? (
-        <div className="compare-grid">
+        <div className="compare-grid compare-grid-stable">
           {comparison.map(({ candidate, score }) => (
             <Card key={candidate.id} title={candidate.name} extra={<StatusTag value={candidate.status} />}>
               <Statistic title="综合匹配" value={score?.overall ?? candidate.latest_score ?? "-"} />
@@ -964,8 +1008,11 @@ function CompareModal({ comparison, loading, onClose, open }: { comparison: { ca
           ))}
         </div>
       ) : (
-        <Empty description="请选择 2-3 名候选人进行对比" />
+        <div className="compare-empty-state">
+          <Empty description="请选择 2-3 名候选人进行对比" />
+        </div>
       )}
-    </Modal>
+      </div>
+    </Drawer>
   );
 }

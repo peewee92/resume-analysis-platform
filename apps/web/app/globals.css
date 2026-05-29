@@ -177,6 +177,43 @@ body {
   gap: 12px;
 }
 
+.compare-drawer .ant-drawer-body {
+  min-height: 540px;
+  overflow: auto;
+}
+
+.compare-drawer-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  min-height: 500px;
+}
+
+.compare-drawer-status {
+  min-height: 28px;
+}
+
+.compare-grid-stable {
+  min-height: 448px;
+  align-items: stretch;
+}
+
+.compare-grid-stable > .ant-card,
+.compare-skeleton-card {
+  height: 100%;
+}
+
+.compare-skeleton-card .ant-card-body {
+  display: grid;
+  gap: 16px;
+}
+
+.compare-empty-state {
+  display: grid;
+  min-height: 448px;
+  place-items: center;
+}
+
 .compare-tags {
   margin-top: 12px;
 }
